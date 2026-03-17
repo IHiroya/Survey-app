@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社員アンケートシステム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Shippori+Mincho:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.15);
+    --ink: #1c1b18;
+    --ink2: #6b6a65;
+    --ink3: #a8a79f;
+    --accent: #2a4a3e;
+    --accent2: #3d6b5c;
+    --accent-light: #e8f0ed;
+    --danger: #8b2c2c;
+    --danger-light: #fdf0f0;
+    --warn: #7a5c1a;
+    --success: #2a5c3a;
+    --success-light: #edf5ef;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,0.1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ===== TOPBAR ===== */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-logo {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+  }
+  .logo-mark {
+    width: 30px; height: 30px; background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark svg { width: 16px; height: 16px; fill: white; }
+  .logo-text {
+    font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 600;
+    letter-spacing: 0.05em; color: var(--ink);
+  }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    padding: 7px 16px; border-radius: var(--radius); border: 1px solid var(--border2);
+    background: var(--surface); color: var(--ink); font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif; cursor: pointer; transition: all 0.15s;
+    font-weight: 400; letter-spacing: 0.02em; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { background: var(--surface2); border-color: rgba(0,0,0,0.2); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--ink2); }
+  .btn-ghost:hover { background: var(--surface2); border-color: var(--border); }
+  .btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+  .btn-danger:hover { background: #7a2222; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-lg { padding: 13px 32px; font-size: 15px; font-weight: 500; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ===== LAYOUT ===== */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .container { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+  .container-sm { max-width: 560px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+  /* ===== CARD ===== */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden;
+  }
+  .card-body { padding: 1.5rem 1.75rem; }
+  .card-header {
+    padding: 1.25rem 1.75rem; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .card-title { font-size: 14px; font-weight: 500; letter-spacing: 0.03em; }
+  .card + .card { margin-top: 1.25rem; }
+
+  /* ===== TOP PAGE ===== */
+  .top-page {
+    min-height: calc(100vh - 56px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 3rem 1.5rem; text-align: center;
+  }
+  .top-eyebrow {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent2); font-weight: 500; margin-bottom: 1.25rem;
+  }
+  .top-title {
+    font-family: 'Shippori Mincho', serif; font-size: 42px; font-weight: 600;
+    line-height: 1.3; color: var(--ink); margin-bottom: 1.25rem; letter-spacing: 0.02em;
+  }
+  .top-desc {
+    font-size: 15px; color: var(--ink2); max-width: 440px;
+    margin: 0 auto 3rem; line-height: 1.9;
+  }
+  .top-cards { display: flex; align-items: stretch; gap: 12px; width: 100%; max-width: 560px; }
+  .top-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 2rem 1.5rem;
+    cursor: pointer; transition: all 0.2s; text-align: left;
+    box-shadow: var(--shadow); position: relative; overflow: hidden;
+  }
+  .top-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+  .top-card:active { transform: translateY(0); }
+  .top-card-main { flex: 1; }
+  .top-card-sub {
+    flex: 0 0 auto; width: 130px;
+    display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end;
+    padding: 1rem 1.1rem; background: var(--surface2);
+    border-color: var(--border);
+  }
+  .top-card-sub:hover { background: var(--surface); }
+  .top-card-sub-label { font-size: 12px; font-weight: 500; color: var(--ink2); line-height: 1.4; margin-top: auto; }
+  .top-card-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem;
+  }
+  .top-card-icon svg { width: 22px; height: 22px; }
+  .top-card-icon.green { background: var(--accent-light); }
+  .top-card-icon.green svg { fill: var(--accent); }
+  .top-card h3 { font-size: 16px; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink); }
+  .top-card p { font-size: 13px; color: var(--ink2); line-height: 1.7; }
+  .top-card-arrow {
+    position: absolute; right: 1.25rem; top: 1.25rem; font-size: 18px; color: var(--ink3);
+    transition: transform 0.2s, color 0.2s;
+  }
+  .top-card:hover .top-card-arrow { transform: translate(2px, -2px); color: var(--accent); }
+  .top-footer { margin-top: 3rem; font-size: 12px; color: var(--ink3); display: flex; align-items: center; gap: 6px; }
+
+  /* ===== USER PAGE ===== */
+  .survey-hero { text-align: center; padding: 3rem 1rem 2rem; }
+  .survey-eyebrow {
+    font-size: 11px; letter-spacing: 0.15em; color: var(--accent2);
+    text-transform: uppercase; margin-bottom: 1rem; font-weight: 500;
+  }
+  .survey-hero h1 {
+    font-family: 'Shippori Mincho', serif; font-size: 30px; font-weight: 600;
+    line-height: 1.4; margin-bottom: 0.75rem;
+  }
+  .survey-hero p { font-size: 14px; color: var(--ink2); max-width: 420px; margin: 0 auto; line-height: 1.8; }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ink3);
+    cursor: pointer; margin-bottom: 0.5rem; transition: color 0.15s;
+    background: none; border: none; font-family: inherit; padding: 0;
+  }
+  .back-link:hover { color: var(--ink2); }
+  .form-label { font-size: 12px; font-weight: 500; color: var(--ink2); letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
+  textarea {
+    width: 100%; min-height: 200px; padding: 14px 16px;
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    font-size: 14px; font-family: 'Noto Sans JP', sans-serif;
+    resize: vertical; background: var(--surface); color: var(--ink); line-height: 1.75;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(42,74,62,0.08); }
+  textarea::placeholder { color: var(--ink3); }
+  .char-count { font-size: 11px; color: var(--ink3); text-align: right; margin-top: 5px; }
+  .char-count.warn { color: var(--warn); }
+  .char-count.over { color: var(--danger); }
+  .submit-row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 1.25rem; }
+  .anon-note { font-size: 12px; color: var(--ink3); display: flex; align-items: center; gap: 4px; }
+
+  .success-wrap { text-align: center; padding: 4rem 1rem; animation: fadeIn 0.4s ease; }
+  .success-check {
+    width: 64px; height: 64px; background: var(--success-light); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 28px;
+  }
+  .success-wrap h2 { font-family: 'Shippori Mincho', serif; font-size: 22px; margin-bottom: 0.75rem; }
+  .success-wrap p { font-size: 14px; color: var(--ink2); margin-bottom: 2rem; line-height: 1.8; }
+  .success-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* ===== LOGIN PAGE ===== */
+  .login-page { min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center; padding: 2rem 1.5rem; }
+  .login-card { width: 100%; max-width: 400px; }
+  .login-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-light); color: var(--accent);
+    font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+    padding: 4px 10px; border-radius: 20px; margin-bottom: 1rem;
+  }
+  .login-card h2 { font-family: 'Shippori Mincho', serif; font-size: 22px; font-weight: 600; margin-bottom: 0.5rem; }
+  .login-card .sub { font-size: 13px; color: var(--ink2); margin-bottom: 2rem; }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { font-size: 12px; font-weight: 500; color: var(--ink2); display: block; margin-bottom: 5px; letter-spacing: 0.04em; }
+  input[type=text], input[type=password] {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border2); border-radius: var(--radius);
+    font-size: 14px; font-family: 'Noto Sans JP', sans-serif; background: var(--surface); color: var(--ink);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(42,74,62,0.08); }
+  .login-error {
+    background: var(--danger-light); border: 1px solid rgba(139,44,44,0.15);
+    border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--danger); margin-top: 10px; display: none;
+  }
+
+  /* ===== ADMIN PAGE ===== */
+  .admin-layout { display: flex; min-height: calc(100vh - 56px); }
+  .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 1.5rem 0; flex-shrink: 0; }
+  .sidebar-label { font-size: 10px; font-weight: 500; letter-spacing: 0.12em; color: var(--ink3); padding: 0.5rem 0.75rem; text-transform: uppercase; }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius);
+    font-size: 13px; color: var(--ink2); cursor: pointer; transition: all 0.15s; margin: 1px 6px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--ink); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .admin-main { flex: 1; overflow: auto; }
+  .admin-content { padding: 2rem; max-width: 760px; }
+
+  /* ===== METRICS ===== */
+  .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; box-shadow: var(--shadow); }
+  .metric-label { font-size: 11px; color: var(--ink3); letter-spacing: 0.06em; margin-bottom: 8px; text-transform: uppercase; font-weight: 500; }
+  .metric-value { font-size: 28px; font-weight: 300; color: var(--ink); letter-spacing: -0.02em; }
+  .metric-value span { font-size: 13px; color: var(--ink3); font-weight: 400; margin-left: 3px; }
+
+  /* ===== TABLE ===== */
+  .sort-chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .sort-chip {
+    padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border2); background: transparent;
+    font-size: 12px; cursor: pointer; color: var(--ink2); font-family: 'Noto Sans JP', sans-serif; transition: all 0.15s;
+  }
+  .sort-chip:hover { background: var(--surface2); }
+  .sort-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left; font-size: 11px; font-weight: 500; color: var(--ink3); padding: 10px 16px;
+    border-bottom: 1px solid var(--border); letter-spacing: 0.06em; text-transform: uppercase; background: var(--surface2);
+  }
+  .data-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13px; line-height: 1.6; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg); }
+  .data-table .id-col { color: var(--ink3); font-size: 12px; white-space: nowrap; width: 60px; }
+  .data-table .content-col { max-width: 440px; }
+  .data-table .date-col { color: var(--ink2); white-space: nowrap; font-size: 12px; width: 120px; }
+  .empty-state { text-align: center; padding: 3rem 1.5rem; color: var(--ink3); font-size: 14px; }
+  .empty-state p { margin-top: 0.5rem; font-size: 12px; }
+
+  /* ===== RANKING ===== */
+  .ranking-list { list-style: none; }
+  .ranking-item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .ranking-item:last-child { border-bottom: none; }
+  .rank-pos { font-size: 12px; font-weight: 500; color: var(--ink3); width: 28px; text-align: center; flex-shrink: 0; }
+  .rank-pos.gold { color: #9a7d2e; }
+  .rank-pos.silver { color: #7a7a7a; }
+  .rank-pos.bronze { color: #8b5e3c; }
+  .rank-word { font-size: 16px; font-weight: 500; min-width: 80px; }
+  .rank-bar-wrap { flex: 1; display: flex; align-items: center; gap: 10px; }
+  .rank-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .rank-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .rank-count { font-size: 13px; color: var(--ink2); white-space: nowrap; min-width: 50px; text-align: right; }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+    border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+  }
+  .loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .summary-box {
+    background: var(--accent-light); border: 1px solid rgba(42,74,62,0.12); border-radius: var(--radius);
+    padding: 1rem 1.25rem; font-size: 13px; color: var(--accent); line-height: 1.8; margin-top: 1.25rem; display: none;
+  }
+
+  /* ===== SETTINGS ===== */
+  .settings-form { max-width: 440px; }
+  .hint-text { font-size: 12px; color: var(--ink3); margin-top: 4px; line-height: 1.6; }
+  .save-toast {
+    display: none; align-items: center; gap: 6px; font-size: 13px; color: var(--success);
+    background: var(--success-light); padding: 6px 12px; border-radius: var(--radius);
+  }
+  .section-sep { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  .subsection-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; }
+  .field-error { font-size: 12px; color: var(--danger); margin-top: 6px; display: none; }
+  .danger-zone h3 { font-size: 13px; font-weight: 500; color: var(--danger); margin-bottom: 0.5rem; }
+  .danger-zone p { font-size: 12px; color: var(--ink2); margin-bottom: 1rem; line-height: 1.7; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .admin-content { padding: 1.25rem; }
+    .topbar { padding: 0 1rem; }
+    .top-cards { flex-direction: column; }
+    .top-card-sub { width: 100%; flex-direction: row; align-items: center; justify-content: space-between; padding: 0.9rem 1.1rem; }
+    .top-title { font-size: 30px; }
+  }
+  @media (max-width: 480px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+    .container, .container-sm { padding: 1.5rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-logo" onclick="showPage('top')">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16"><path d="M8 1L2 4v4c0 3.5 2.5 6.5 6 7.5 3.5-1 6-4 6-7.5V4L8 1z"/></svg>
+    </div>
+    <span class="logo-text">VoiceLink</span>
+  </div>
+  <div class="topbar-actions" id="topbarActions"></div>
+</header>
+
+<!-- ===== TOP PAGE ===== -->
+<div class="page active" id="page-top">
+  <div class="top-page">
+    <p class="top-eyebrow">Employee Voice System</p>
+    <h1 class="top-title" id="topSurveyTitle">職場満足度について</h1>
+    <p class="top-desc">社員の声を大切にするための匿名アンケートシステムです。<br>ご意見・ご提案をお気軽にお寄せください。</p>
+    <div class="top-cards">
+      <div class="top-card top-card-main" onclick="showPage('user')">
+        <div class="top-card-icon green">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <span class="top-card-arrow">↗</span>
+        <h3>アンケートに回答する</h3>
+        <p>匿名で自由にご意見をお寄せください。送信内容は個人を特定しません。</p>
+      </div>
+      <div class="top-card top-card-sub" onclick="showPage('login')">
+        <span class="top-card-arrow" style="font-size:14px;">↗</span>
+        <p class="top-card-sub-label">管理者ページ</p>
+      </div>
+    </div>
+    <p class="top-footer">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="var(--ink3)"><path d="M8 1a5 5 0 0 0-5 5v1H2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V6a5 5 0 0 0-5-5zm-3 6V6a3 3 0 1 1 6 0v1H5z"/></svg>
+      すべての回答は匿名で処理されます
+    </p>
+  </div>
+</div>
+
+<!-- ===== USER PAGE ===== -->
+<div class="page" id="page-user">
+  <div class="container-sm">
+    <button class="back-link" onclick="showPage('top')">← ホームに戻る</button>
+    <div id="surveyFormArea">
+      <div class="survey-hero">
+        <p class="survey-eyebrow">Anonymous Survey</p>
+        <h1 id="surveyTitle">職場満足度について</h1>
+        <p>ご意見・ご提案を自由にお書きください。<br>投稿は完全に匿名で処理されます。</p>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <label class="form-label">あなたのご意見</label>
+          <textarea id="surveyContent" maxlength="1000"
+            placeholder="職場環境、業務改善、評価制度、福利厚生など、どんなことでもお書きください..."
+            oninput="updateCharCount()"></textarea>
+          <div class="char-count" id="charCount">0 / 1000文字</div>
+          <div class="submit-row">
+            <span class="anon-note">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="var(--ink3)"><path d="M8 1a5 5 0 0 0-5 5v1H2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V6a5 5 0 0 0-5-5zm-3 6V6a3 3 0 1 1 6 0v1H5z"/></svg>
+              匿名投稿
+            </span>
+            <button class="btn btn-primary btn-lg" onclick="submitSurvey()">送信する →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="success-wrap" id="successArea" style="display:none;">
+      <div class="success-check">✓</div>
+      <h2>ご回答ありがとうございます</h2>
+      <p>投稿が完了しました。<br>いただいたご意見は大切に参考にさせていただきます。</p>
+      <div class="success-actions">
+        <button class="btn btn-primary btn-lg" onclick="goTopAfterSuccess()">ホームに戻る</button>
+        <button class="btn" onclick="resetUserForm()">続けて回答する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LOGIN PAGE ===== -->
+<div class="page" id="page-login">
+  <div class="login-page">
+    <div class="login-card card">
+      <div class="card-body" style="padding: 2rem;">
+        <button class="back-link" onclick="showPage('top')" style="margin-bottom:1.25rem;">← ホームに戻る</button>
+        <div class="login-badge">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 0 0-5 5v1H2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1V6a5 5 0 0 0-5-5zm-3 6V6a3 3 0 1 1 6 0v1H5z"/></svg>
+          ADMIN ONLY
+        </div>
+        <h2>管理者ログイン</h2>
+        <p class="sub">管理者専用の画面です。ログイン情報をお持ちの方のみアクセスできます。</p>
+        <div class="form-group">
+          <label>ユーザーID</label>
+          <input type="text" id="loginId" placeholder="admin" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label>パスワード</label>
+          <input type="password" id="loginPw" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()" />
+        </div>
+        <div class="login-error" id="loginError">IDまたはパスワードが正しくありません</div>
+        <button class="btn btn-primary" style="width:100%; margin-top:0.75rem; padding:11px;" onclick="doLogin()">ログイン</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADMIN PAGE ===== -->
+<div class="page" id="page-admin">
+  <div class="admin-layout">
+    <nav class="sidebar">
+      <div class="sidebar-label">メニュー</div>
+      <div class="nav-item active" onclick="switchAdminTab('list')" id="nav-list">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h8v2H2v-2z"/></svg>
+        投稿一覧
+      </div>
+      <div class="nav-item" onclick="switchAdminTab('analysis')" id="nav-analysis">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 11h2v4H1v-4zm3-4h2v8H4V7zm3-3h2v11H7V4zm3 5h2v6h-2V9zm3-6h2v12h-2V3z"/></svg>
+        単語分析
+      </div>
+      <div class="nav-item" onclick="switchAdminTab('settings')" id="nav-settings">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 1h4l.5 2 1.5.9 2-.5 2 3.2-1.5 1.4v2l1.5 1.4-2 3.2-2-.5-1.5.9L10 15H6l-.5-2-1.5-.9-2 .5-2-3.2 1.5-1.4v-2L0 4.1l2-3.2 2 .5L5.5 3 6 1z"/></svg>
+        設定
+      </div>
+    </nav>
+
+    <main class="admin-main">
+      <div class="admin-content">
+
+        <!-- 投稿一覧 -->
+        <div id="admintab-list">
+          <div class="metrics-grid" id="metricsGrid"></div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">投稿一覧</span>
+              <div class="sort-chips">
+                <span style="font-size:11px; color:var(--ink3); letter-spacing:0.05em;">並び順</span>
+                <button class="sort-chip active" onclick="sortSurveys('new')" id="chip-new">新しい順</button>
+                <button class="sort-chip" onclick="sortSurveys('old')" id="chip-old">古い順</button>
+                <button class="sort-chip" onclick="sortSurveys('freq')" id="chip-freq">単語頻度順</button>
+              </div>
+            </div>
+            <div id="tableWrap"></div>
+          </div>
+        </div>
+
+        <!-- 単語分析 -->
+        <div id="admintab-analysis" style="display:none;">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">単語頻度分析 — Top 5</span>
+              <button class="btn btn-primary btn-sm" id="analyzeBtn" onclick="runAnalysis()">
+                <span class="spinner" id="spinner"></span>
+                <span id="analyzeBtnText">AI 形態素解析を実行</span>
+              </button>
+            </div>
+            <div class="card-body" id="rankingWrap">
+              <div class="empty-state">
+                ボタンを押して全投稿の形態素解析を開始します
+                <p>Claude AI が名詞を抽出し、出現頻度をカウントします</p>
+              </div>
+            </div>
+          </div>
+          <div id="summaryBox" class="summary-box"></div>
+        </div>
+
+        <!-- 設定 -->
+        <div id="admintab-settings" style="display:none;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">アンケート設定</span></div>
+            <div class="card-body">
+
+              <!-- タイトル -->
+              <div class="settings-form">
+                <p class="subsection-title">アンケートタイトル</p>
+                <div class="form-group">
+                  <label class="form-label">タイトル</label>
+                  <input type="text" id="settingTitle" />
+                  <p class="hint-text">トップ画面・回答フォームに表示されるタイトルです</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <button class="btn btn-primary" onclick="saveSettings()">保存する</button>
+                  <div class="save-toast" id="saveToast">✓ 保存しました</div>
+                </div>
+              </div>
+
+              <hr class="section-sep">
+
+              <!-- パスワード変更 -->
+              <div class="settings-form">
+                <p class="subsection-title">管理者パスワードの変更</p>
+                <div class="form-group">
+                  <label class="form-label">現在のパスワード</label>
+                  <input type="password" id="pwCurrent" placeholder="現在のパスワードを入力" autocomplete="current-password" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">新しいパスワード</label>
+                  <input type="password" id="pwNew" placeholder="4文字以上" autocomplete="new-password" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">新しいパスワード（確認）</label>
+                  <input type="password" id="pwConfirm" placeholder="もう一度入力" autocomplete="new-password" />
+                </div>
+                <div class="field-error" id="pwError"></div>
+                <div style="display:flex; align-items:center; gap:10px; margin-top:0.25rem;">
+                  <button class="btn btn-primary" onclick="changePassword()">パスワードを変更する</button>
+                  <div class="save-toast" id="pwToast">✓ パスワードを変更しました</div>
+                </div>
+              </div>
+
+              <hr class="section-sep">
+
+              <!-- 危険操作 -->
+              <div class="danger-zone">
+                <h3>危険な操作</h3>
+                <p>以下の操作は取り消すことができません。<br>十分に確認した上で実行してください。</p>
+                <button class="btn btn-danger btn-sm" onclick="clearAllData()">全投稿データを削除する</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let state = {
+  surveys: [],
+  settings: { surveyTitle: '職場満足度について' },
+  adminPassword: 'password123',
+  wordRanking: [],
+  nextId: 1,
+  sortMode: 'new'
+};
+
+const ADMIN_USERNAME = 'admin';
+
+// ===== PERSISTENCE =====
+function loadState() {
+  try {
+    const s = localStorage.getItem('voicelink_v2');
+    if (s) state = { ...state, ...JSON.parse(s) };
+  } catch(e) {}
+  applySurveyTitle();
+}
+
+function saveState() {
+  try { localStorage.setItem('voicelink_v2', JSON.stringify(state)); } catch(e) {}
+}
+
+function applySurveyTitle() {
+  const t = state.settings.surveyTitle;
+  ['surveyTitle', 'topSurveyTitle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = t;
+  });
+  const si = document.getElementById('settingTitle');
+  if (si) si.value = t;
+}
+
+// ===== PAGE ROUTING =====
+let isLoggedIn = false;
+
+function resetTopbar() {
+  document.getElementById('topbarActions').innerHTML = '';
+}
+
+function updateTopbarAdmin() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="btn btn-sm" onclick="doLogout()">ログアウト</button>
+  `;
+}
+
+function showPage(name) {
+  // ホームへ戻る時にログイン中なら自動ログアウト
+  if (name === 'top' && isLoggedIn) {
+    isLoggedIn = false;
+    resetTopbar();
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'admin') { renderMetrics(); renderTable(); applySurveyTitle(); updateTopbarAdmin(); }
+  if (name === 'top') applySurveyTitle();
+  if (name === 'login') {
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('loginId').value = '';
+    document.getElementById('loginPw').value = '';
+  }
+}
+
+function doLogout() {
+  document.getElementById('topbarActions').innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="showPage('top')">ホーム</button>
+    <button class="btn btn-sm" onclick="showPage('user')">アンケート回答</button>
+    <button class="btn btn-sm btn-primary" onclick="showPage('login')">管理者ログイン</button>
+  `;
+  showPage('top');
+}
+
+// ===== USER FORM =====
+function updateCharCount() {
+  const len = document.getElementById('surveyContent').value.length;
+  const el = document.getElementById('charCount');
+  el.textContent = len + ' / 1000文字';
+  el.className = 'char-count' + (len >= 1000 ? ' over' : len > 900 ? ' warn' : '');
+}
+
+function submitSurvey() {
+  const content = document.getElementById('surveyContent').value.trim();
+  if (!content) { alert('内容を入力してください'); return; }
+  if (content.length > 1000) { alert('1000文字以内で入力してください'); return; }
+  state.surveys.push({ id: state.nextId++, content, createdAt: new Date().toISOString() });
+  saveState();
+  document.getElementById('surveyFormArea').style.display = 'none';
+  document.getElementById('successArea').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function goTopAfterSuccess() {
+  document.getElementById('surveyContent').value = '';
+  updateCharCount();
+  document.getElementById('surveyFormArea').style.display = 'block';
+  document.getElementById('successArea').style.display = 'none';
+  showPage('top');
+}
+
+function resetUserForm() {
+  document.getElementById('surveyContent').value = '';
+  updateCharCount();
+  document.getElementById('surveyFormArea').style.display = 'block';
+  document.getElementById('successArea').style.display = 'none';
+}
+
+// ===== LOGIN =====
+function doLogin() {
+  const id = document.getElementById('loginId').value.trim();
+  const pw = document.getElementById('loginPw').value;
+  const errEl = document.getElementById('loginError');
+  if (id === ADMIN_USERNAME && pw === state.adminPassword) {
+    errEl.style.display = 'none';
+    isLoggedIn = true;
+    showPage('admin');
+  } else {
+    errEl.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  isLoggedIn = false;
+  resetTopbar();
+  showPage('top');
+}
+
+// ===== ADMIN TABS =====
+function switchAdminTab(name) {
+  ['list','analysis','settings'].forEach(t => {
+    document.getElementById('admintab-' + t).style.display = t === name ? 'block' : 'none';
+    document.getElementById('nav-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'settings') applySurveyTitle();
+}
+
+// ===== METRICS =====
+function renderMetrics() {
+  const total = state.surveys.length;
+  const today = state.surveys.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length;
+  const avg = total ? Math.round(state.surveys.reduce((a, s) => a + s.content.length, 0) / total) : 0;
+  document.getElementById('metricsGrid').innerHTML = `
+    <div class="metric-card">
+      <div class="metric-label">総投稿数</div><div class="metric-value">${total}<span>件</span></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">本日の投稿</div><div class="metric-value">${today}<span>件</span></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">平均文字数</div><div class="metric-value">${avg}<span>字</span></div>
+    </div>
+  `;
+}
+
+// ===== TABLE =====
+function sortSurveys(mode) {
+  state.sortMode = mode;
+  ['new','old','freq'].forEach(m => document.getElementById('chip-' + m).classList.toggle('active', m === mode));
+  renderTable();
+}
+
+function renderTable() {
+  const wrap = document.getElementById('tableWrap');
+  if (!state.surveys.length) {
+    wrap.innerHTML = '<div class="empty-state">まだ投稿がありません<p>ユーザーが回答するとここに表示されます</p></div>';
+    return;
+  }
+  let list = [...state.surveys];
+  if (state.sortMode === 'new') list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  else if (state.sortMode === 'old') list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  else if (state.sortMode === 'freq' && state.wordRanking.length) {
+    const re = new RegExp(state.wordRanking[0]?.word || '', 'g');
+    list.sort((a, b) => (b.content.match(re)||[]).length - (a.content.match(re)||[]).length);
+  }
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>ID</th><th>投稿内容</th><th>投稿日時</th></tr></thead>
+      <tbody>${list.map(s => `
+        <tr>
+          <td class="id-col">#${s.id}</td>
+          <td class="content-col">${escHtml(s.content)}</td>
+          <td class="date-col">${fmtDate(s.createdAt)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ===== ANALYSIS =====
+async function runAnalysis() {
+  if (!state.surveys.length) {
+    document.getElementById('rankingWrap').innerHTML = '<div class="empty-state">分析するデータがありません</div>';
+    return;
+  }
+  const btn = document.getElementById('analyzeBtn');
+  const spinner = document.getElementById('spinner');
+  const btnText = document.getElementById('analyzeBtnText');
+  btn.disabled = true; spinner.style.display = 'inline-block'; btnText.textContent = '分析中...';
+  const allText = state.surveys.map(s => s.content).join('。');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+        messages: [{ role: 'user', content: `以下の社員アンケート回答テキストを形態素解析して名詞を抽出し出現回数をカウントしてください。
+ストップワード（こと・もの・ため・今・私・自分・これ・それ・あれ・とき・よう・ところ）は除外してください。
+上位5単語を以下のJSONのみで返してください。コードブロックや説明文は不要です:
+{"ranking":[{"word":"給与","count":5},{"word":"残業","count":3}],"summary":"2〜3文の要約"}
+
+テキスト:\n${allText.substring(0, 3000)}` }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content.map(i => i.text || '').join('');
+    const parsed = JSON.parse(raw.replace(/```[\w]*\n?/g, '').trim());
+    state.wordRanking = parsed.ranking || [];
+    saveState();
+    renderRanking(parsed.summary || '');
+  } catch(e) { fallbackAnalysis(allText); }
+  btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = 'AI 形態素解析を実行';
+}
+
+function fallbackAnalysis(text) {
+  const words = text.match(/[\u4e00-\u9faf\u3040-\u309f\u30a0-\u30ff]{2,6}/g) || [];
+  const stop = new Set(['こと','もの','ため','これ','それ','あれ','という','てい','なり','おり','ます','です','ある','いる','する','なる','よう','ところ','とき','まず','また','さらに']);
+  const freq = {};
+  words.forEach(w => { if (!stop.has(w)) freq[w] = (freq[w] || 0) + 1; });
+  state.wordRanking = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([word,count])=>({word,count}));
+  saveState();
+  renderRanking('（簡易解析モード）投稿テキストから頻出キーワードを抽出しました。');
+}
+
+function renderRanking(summary) {
+  const wrap = document.getElementById('rankingWrap');
+  if (!state.wordRanking.length) { wrap.innerHTML = '<div class="empty-state">ランキングデータがありません</div>'; return; }
+  const max = state.wordRanking[0]?.count || 1;
+  const posClass = ['gold','silver','bronze','',''];
+  wrap.innerHTML = `<ul class="ranking-list">${state.wordRanking.map((item, i) => `
+    <li class="ranking-item">
+      <span class="rank-pos ${posClass[i]}">${i+1}位</span>
+      <span class="rank-word">${escHtml(item.word)}</span>
+      <div class="rank-bar-wrap">
+        <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${Math.round((item.count/max)*100)}%"></div></div>
+        <span class="rank-count">${item.count}回</span>
+      </div>
+    </li>`).join('')}</ul>`;
+  const sb = document.getElementById('summaryBox');
+  sb.textContent = summary; sb.style.display = summary ? 'block' : 'none';
+}
+
+// ===== SETTINGS =====
+function saveSettings() {
+  const title = document.getElementById('settingTitle').value.trim();
+  if (!title) { alert('タイトルを入力してください'); return; }
+  state.settings.surveyTitle = title;
+  applySurveyTitle();
+  saveState();
+  const t = document.getElementById('saveToast');
+  t.style.display = 'flex';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+
+function changePassword() {
+  const current = document.getElementById('pwCurrent').value;
+  const newPw   = document.getElementById('pwNew').value;
+  const confirm = document.getElementById('pwConfirm').value;
+  const errEl   = document.getElementById('pwError');
+  errEl.style.display = 'none';
+
+  if (current !== state.adminPassword) {
+    errEl.textContent = '現在のパスワードが正しくありません'; errEl.style.display = 'block'; return;
+  }
+  if (newPw.length < 4) {
+    errEl.textContent = 'パスワードは4文字以上で設定してください'; errEl.style.display = 'block'; return;
+  }
+  if (newPw !== confirm) {
+    errEl.textContent = '新しいパスワードが一致しません'; errEl.style.display = 'block'; return;
+  }
+  state.adminPassword = newPw;
+  saveState();
+  document.getElementById('pwCurrent').value = '';
+  document.getElementById('pwNew').value = '';
+  document.getElementById('pwConfirm').value = '';
+  const t = document.getElementById('pwToast');
+  t.style.display = 'flex';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+
+function clearAllData() {
+  if (!confirm('全投稿データを完全に削除します。\nこの操作は取り消せません。実行しますか？')) return;
+  state.surveys = []; state.wordRanking = []; state.nextId = 1;
+  try {
+    localStorage.removeItem('voicelink_v2');
+    localStorage.removeItem('voicelink_state');
+    localStorage.removeItem('surveyAppState');
+  } catch(e) {}
+  saveState();
+  renderMetrics();
+  renderTable();
+  const rw = document.getElementById('rankingWrap');
+  if (rw) rw.innerHTML = '<div class="empty-state">ボタンを押して全投稿の形態素解析を開始します<p>Claude AI が名詞を抽出し、出現頻度をカウントします</p></div>';
+  const sb = document.getElementById('summaryBox');
+  if (sb) sb.style.display = 'none';
+  alert('削除が完了しました');
+}
+
+// ===== INIT =====
+loadState();
+</script>
+</body>
+</html>
