@@ -227,18 +227,70 @@
   }
 
   /* ===== ADMIN PAGE ===== */
-  .admin-layout { display: flex; min-height: calc(100vh - 56px); }
-  .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 1.5rem 0; flex-shrink: 0; }
-  .sidebar-label { font-size: 10px; font-weight: 500; letter-spacing: 0.12em; color: var(--ink3); padding: 0.5rem 0.75rem; text-transform: uppercase; }
-  .nav-item {
-    display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius);
-    font-size: 13px; color: var(--ink2); cursor: pointer; transition: all 0.15s; margin: 1px 6px;
+  .admin-layout { display: flex; flex-direction: column; min-height: calc(100vh - 56px); }
+  .admin-tabbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 1.5rem; gap: 2px;
+    position: sticky; top: 56px; z-index: 90; flex-shrink: 0;
   }
-  .nav-item:hover { background: var(--surface2); color: var(--ink); }
-  .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
-  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
-  .admin-main { flex: 1; overflow: auto; }
+  .admin-tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 14px; font-size: 13px; color: var(--ink2);
+    cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s; white-space: nowrap;
+    background: none; border-top: none; border-left: none; border-right: none;
+    font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.02em;
+  }
+  .admin-tab:hover { color: var(--ink); }
+  .admin-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+  .admin-tab svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .admin-main { flex: 1; }
   .admin-content { padding: 2rem; max-width: 760px; }
+  .burger-btn {
+    display: none; flex-direction: column; justify-content: center; align-items: center;
+    gap: 5px; width: 36px; height: 36px; border: none; background: none; cursor: pointer;
+    border-radius: var(--radius); transition: background 0.15s; flex-shrink: 0;
+  }
+  .burger-btn:hover { background: var(--surface2); }
+  .burger-btn span {
+    display: block; width: 18px; height: 1.5px; background: var(--ink); border-radius: 2px;
+    transition: transform 0.25s, opacity 0.2s;
+  }
+  .burger-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+  .burger-btn.open span:nth-child(2) { opacity: 0; }
+  .burger-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+  .drawer-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    z-index: 200; opacity: 0; transition: opacity 0.2s;
+  }
+  .drawer-overlay.open { opacity: 1; }
+  .drawer {
+    position: fixed; top: 0; left: -260px; width: 260px; height: 100vh;
+    background: var(--surface); z-index: 201;
+    box-shadow: var(--shadow-lg); transition: left 0.25s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column;
+  }
+  .drawer.open { left: 0; }
+  .drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 1rem; height: 56px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .drawer-title { font-size: 13px; font-weight: 500; color: var(--ink2); letter-spacing: 0.06em; }
+  .drawer-close {
+    width: 32px; height: 32px; border: none; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; border-radius: var(--radius);
+    color: var(--ink2); font-size: 18px; transition: background 0.15s;
+  }
+  .drawer-close:hover { background: var(--surface2); }
+  .drawer-nav { padding: 0.75rem 0.5rem; flex: 1; }
+  .drawer-item {
+    display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+    border-radius: var(--radius); font-size: 14px; color: var(--ink2);
+    cursor: pointer; transition: all 0.15s; margin-bottom: 2px;
+  }
+  .drawer-item:hover { background: var(--surface2); color: var(--ink); }
+  .drawer-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .drawer-item svg { width: 16px; height: 16px; flex-shrink: 0; }
 
   /* ===== METRICS ===== */
   .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 1.5rem; }
@@ -308,13 +360,15 @@
 
   /* ===== RESPONSIVE ===== */
   @media (max-width: 700px) {
-    .sidebar { display: none; }
     .metrics-grid { grid-template-columns: repeat(2, 1fr); }
     .admin-content { padding: 1.25rem; }
     .topbar { padding: 0 1rem; }
     .top-cards { flex-direction: column; }
     .top-card-sub { width: 100%; flex-direction: row; align-items: center; justify-content: space-between; padding: 0.9rem 1.1rem; }
     .top-title { font-size: 30px; }
+    .admin-tabbar { display: none; }
+    .burger-btn { display: flex; }
+    .drawer-overlay { display: block; }
   }
   @media (max-width: 480px) {
     .metrics-grid { grid-template-columns: 1fr; }
@@ -429,24 +483,51 @@
   </div>
 </div>
 
+<!-- ドロワーオーバーレイ -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<!-- ドロワー -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">メニュー</span>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-nav">
+    <div class="drawer-item active" id="ditem-list" onclick="switchAdminTab('list');closeDrawer()">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h8v2H2v-2z"/></svg>
+      投稿一覧
+    </div>
+    <div class="drawer-item" id="ditem-analysis" onclick="switchAdminTab('analysis');closeDrawer()">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 11h2v4H1v-4zm3-4h2v8H4V7zm3-3h2v11H7V4zm3 5h2v6h-2V9zm3-6h2v12h-2V3z"/></svg>
+      単語分析
+    </div>
+    <div class="drawer-item" id="ditem-settings" onclick="switchAdminTab('settings');closeDrawer()">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 1h4l.5 2 1.5.9 2-.5 2 3.2-1.5 1.4v2l1.5 1.4-2 3.2-2-.5-1.5.9L10 15H6l-.5-2-1.5-.9-2 .5-2-3.2 1.5-1.4v-2L0 4.1l2-3.2 2 .5L5.5 3 6 1z"/></svg>
+      設定
+    </div>
+  </div>
+</div>
+
 <!-- ===== ADMIN PAGE ===== -->
 <div class="page" id="page-admin">
   <div class="admin-layout">
-    <nav class="sidebar">
-      <div class="sidebar-label">メニュー</div>
-      <div class="nav-item active" onclick="switchAdminTab('list')" id="nav-list">
+    <!-- タブバー（PC） + バーガー（モバイル） -->
+    <div class="admin-tabbar">
+      <button class="burger-btn" id="burgerBtn" onclick="openDrawer()">
+        <span></span><span></span><span></span>
+      </button>
+      <button class="admin-tab active" id="nav-list" onclick="switchAdminTab('list')">
         <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h8v2H2v-2z"/></svg>
         投稿一覧
-      </div>
-      <div class="nav-item" onclick="switchAdminTab('analysis')" id="nav-analysis">
+      </button>
+      <button class="admin-tab" id="nav-analysis" onclick="switchAdminTab('analysis')">
         <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 11h2v4H1v-4zm3-4h2v8H4V7zm3-3h2v11H7V4zm3 5h2v6h-2V9zm3-6h2v12h-2V3z"/></svg>
         単語分析
-      </div>
-      <div class="nav-item" onclick="switchAdminTab('settings')" id="nav-settings">
+      </button>
+      <button class="admin-tab" id="nav-settings" onclick="switchAdminTab('settings')">
         <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 1h4l.5 2 1.5.9 2-.5 2 3.2-1.5 1.4v2l1.5 1.4-2 3.2-2-.5-1.5.9L10 15H6l-.5-2-1.5-.9-2 .5-2-3.2 1.5-1.4v-2L0 4.1l2-3.2 2 .5L5.5 3 6 1z"/></svg>
         設定
-      </div>
-    </nav>
+      </button>
+    </div>
 
     <main class="admin-main">
       <div class="admin-content">
@@ -685,8 +766,22 @@ function switchAdminTab(name) {
   ['list','analysis','settings'].forEach(t => {
     document.getElementById('admintab-' + t).style.display = t === name ? 'block' : 'none';
     document.getElementById('nav-' + t).classList.toggle('active', t === name);
+    const di = document.getElementById('ditem-' + t);
+    if (di) di.classList.toggle('active', t === name);
   });
   if (name === 'settings') applySurveyTitle();
+}
+
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('burgerBtn').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.getElementById('burgerBtn').classList.remove('open');
 }
 
 // ===== METRICS =====
