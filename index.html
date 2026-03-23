@@ -260,10 +260,11 @@
   .burger-btn.open span:nth-child(2) { opacity: 0; }
   .burger-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
   .drawer-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
-    z-index: 200; opacity: 0; transition: opacity 0.2s;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    z-index: 200; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
   }
-  .drawer-overlay.open { opacity: 1; }
+  .drawer-overlay.open { opacity: 1; pointer-events: auto; }
   .drawer {
     position: fixed; top: 0; left: -260px; width: 260px; height: 100vh;
     background: var(--surface); z-index: 201;
@@ -366,9 +367,8 @@
     .top-cards { flex-direction: column; }
     .top-card-sub { width: 100%; flex-direction: row; align-items: center; justify-content: space-between; padding: 0.9rem 1.1rem; }
     .top-title { font-size: 30px; }
-    .admin-tabbar { display: none; }
+    .admin-tab { display: none; }
     .burger-btn { display: flex; }
-    .drawer-overlay { display: block; }
   }
   @media (max-width: 480px) {
     .metrics-grid { grid-template-columns: 1fr; }
@@ -538,11 +538,17 @@
           <div class="card">
             <div class="card-header">
               <span class="card-title">投稿一覧</span>
-              <div class="sort-chips">
-                <span style="font-size:11px; color:var(--ink3); letter-spacing:0.05em;">並び順</span>
-                <button class="sort-chip active" onclick="sortSurveys('new')" id="chip-new">新しい順</button>
-                <button class="sort-chip" onclick="sortSurveys('old')" id="chip-old">古い順</button>
-                <button class="sort-chip" onclick="sortSurveys('freq')" id="chip-freq">単語頻度順</button>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div class="sort-chips">
+                  <span style="font-size:11px; color:var(--ink3); letter-spacing:0.05em;">並び順</span>
+                  <button class="sort-chip active" onclick="sortSurveys('new')" id="chip-new">新しい順</button>
+                  <button class="sort-chip" onclick="sortSurveys('old')" id="chip-old">古い順</button>
+                  <button class="sort-chip" onclick="sortSurveys('freq')" id="chip-freq">単語頻度順</button>
+                </div>
+                <button class="btn btn-sm" onclick="exportCSV()" style="margin-left:4px;">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V2h3v6H12L8 12zM2 13h12v1.5H2V13z"/></svg>
+                  CSV出力
+                </button>
               </div>
             </div>
             <div id="tableWrap"></div>
@@ -554,10 +560,16 @@
           <div class="card">
             <div class="card-header">
               <span class="card-title">単語頻度分析 — Top 5</span>
-              <button class="btn btn-primary btn-sm" id="analyzeBtn" onclick="runAnalysis()">
-                <span class="spinner" id="spinner"></span>
-                <span id="analyzeBtnText">AI 形態素解析を実行</span>
-              </button>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-sm" onclick="exportRankingCSV()" id="rankingCsvBtn" disabled>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12l-4-4h2.5V2h3v6H12L8 12zM2 13h12v1.5H2V13z"/></svg>
+                  CSV出力
+                </button>
+                <button class="btn btn-primary btn-sm" id="analyzeBtn" onclick="runAnalysis()">
+                  <span class="spinner" id="spinner"></span>
+                  <span id="analyzeBtnText">AI 形態素解析を実行</span>
+                </button>
+              </div>
             </div>
             <div class="card-body" id="rankingWrap">
               <div class="empty-state">
@@ -904,6 +916,8 @@ function renderRanking(summary) {
     </li>`).join('')}</ul>`;
   const sb = document.getElementById('summaryBox');
   sb.textContent = summary; sb.style.display = summary ? 'block' : 'none';
+  const csvBtn = document.getElementById('rankingCsvBtn');
+  if (csvBtn) csvBtn.disabled = false;
 }
 
 // ===== SETTINGS =====
@@ -962,8 +976,50 @@ function clearAllData() {
   alert('削除が完了しました');
 }
 
+// ===== CSV EXPORT =====
+function exportCSV() {
+  if (!state.surveys.length) { alert('エクスポートするデータがありません'); return; }
+  const escape = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const header = ['ID', '投稿内容', '投稿日時'];
+  const rows = state.surveys
+    .slice()
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .map(s => [s.id, s.content, new Date(s.createdAt).toLocaleString('ja-JP')].map(escape).join(','));
+  const bom = '\uFEFF';
+  const csv = bom + [header.map(escape).join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url; a.download = 'survey_' + date + '.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function exportRankingCSV() {
+  if (!state.wordRanking.length) { alert('分析結果がありません。先にAI分析を実行してください'); return; }
+  const escape = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const header = ['順位', 'キーワード', '出現回数'];
+  const rows = state.wordRanking.map((item, i) =>
+    [i + 1, item.word, item.count].map(escape).join(',')
+  );
+  const bom = '\uFEFF';
+  const csv = bom + [header.map(escape).join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url; a.download = 'word_ranking_' + date + '.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
 // ===== INIT =====
 loadState();
+if (state.wordRanking.length) {
+  const csvBtn = document.getElementById('rankingCsvBtn');
+  if (csvBtn) csvBtn.disabled = false;
+}
 </script>
 </body>
 </html>
